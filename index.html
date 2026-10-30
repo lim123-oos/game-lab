@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>痕迹实验室 · 主页</title>
+<style>
+    body {
+        background-color: #0f1116;
+        color: #e6e8ee;
+        font-family: "Microsoft YaHei", sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+    }
+    h1 { font-size: 36px; letter-spacing: 2px; margin-bottom: 10px; }
+    p { color: #8b93a5; margin-bottom: 40px; }
+    .menu {
+        display: flex;
+        gap: 20px;
+    }
+    .btn {
+        display: block;
+        text-decoration: none;
+        background: #2d5f8a;
+        color: white;
+        padding: 20px 40px;
+        border-radius: 10px;
+        font-size: 20px;
+        transition: 0.2s;
+        border: 1px solid #3a75a8;
+    }
+    .btn:hover {
+        background: #3a75a8;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+</style>
+</head>
+<body>
+    <h1>痕迹实验室</h1>
+    <p>科学破案推理游戏 · 请选择案件</p>
+    
+    <div class="menu">
+        <!-- 点这里会打开 case1.html -->
+        <a href="case1.html" class="btn">进入案件 01</a>
+        
+        <!-- 点这里会打开 case2.html -->
+        <a href="case2.html" class="btn">进入案件 02</a>
+    </div>
+</body>
+</html>
