@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>小小餐厅 · 答题经营游戏</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+    background: radial-gradient(circle at 50% 20%, #4a2c1d, #1a0f09);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px;
+    color: #3E2723;
+    overflow: hidden;
+  }
+
+  #app {
+    width: min(880px, 100%);
+    height: min(720px, calc(100vh - 20px));
+    background: #FFF8F0;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08);
+  }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ================= 菜单 ================= */
+  #menuScreen {
+    background: linear-gradient(165deg, #FFE0B8 0%, #FFC888 45%, #FFB067 100%);
+    align-items: center; justify-content: center;
+    padding: 24px; overflow-y: auto;
+  }
+  .menu-inner {
+    display: flex; flex-direction: column; align-items: center;
+    width: 100%; max-width: 340px; gap: 10px;
+    animation: fadeUp .5s ease;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } }
+
+  .logo {
+    font-size: 62px; line-height: 1;
+    filter: drop-shadow(0 6px 12px rgba(160,80,20,.35));
+    animation: bob 2.6s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+
+  h1 {
+    font-size: clamp(30px, 7vw, 40px);
+    letter-spacing: 2px; color: #6B3410;
+    text-shadow: 0 2px 0 #fff, 0 5px 14px rgba(140,70,20,.3);
+    font-weight: 900;
+  }
+  .subtitle { font-size: 14px; color: #8B5A2B; margin-bottom: 8px; letter-spacing: .5px; }
+
+  .menu-stats { display: flex; gap: 10px; margin-bottom: 8px; width: 100%; }
+  .stat-chip {
+    flex: 1; background: rgba(255,255,255,.75);
+    border-radius: 14px; padding: 10px;
+    text-align: center; font-weight: 800; font-size: 16px; color: #6B3410;
+    box-shadow: 0 3px 10px rgba(140,70,20,.14);
+  }
+  .stat-chip small { display: block; font-size: 10px; font-weight: 600; color: #A9764A; letter-spacing: 1px; margin-top: 2px; }
+
+  .big-btn {
+    width: 100%; padding: 15px;
+    border: none; border-radius: 16px;
+    font-family: inherit; font-size: 17px; font-weight: 800;
+    letter-spacing: 1px; cursor: pointer;
+    background: #fff; color: #8B5A2B;
+    box-shadow: 0 4px 0 #E0B98C, 0 8px 18px rgba(140,70,20,.18);
+    transition: transform .1s, box-shadow .1s;
+  }
+  .big-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #E0B98C, 0 4px 10px rgba(140,70,20,.18); }
+  .big-btn.primary {
+    background: linear-gradient(180deg, #FF9F4A, #F0761B);
+    color: #fff; box-shadow: 0 4px 0 #B8540F, 0 10px 22px rgba(200,90,20,.4);
+    font-size: 19px; padding: 17px;
+  }
+  .big-btn.primary:active { box-shadow: 0 1px 0 #B8540F, 0 4px 10px rgba(200,90,20,.4); }
+  .big-btn.ghost {
+    background: transparent; color: #A9764A; box-shadow: none;
+    font-size: 13px; font-weight: 600; padding: 8px; text-decoration: underline;
+  }
+
+  /* ================= 游戏界面 ================= */
+  .hud {
+    flex: none; display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; background: #FFFFFF; border-bottom: 2px solid #F5E3CE;
+  }
+  .hud-chip {
+    background: #FFF4E5; border-radius: 12px;
+    padding: 6px 11px; font-weight: 800; font-size: 14px;
+    color: #8B5A2B; white-space: nowrap;
+  }
+  .hud-chip.combo { background: #FFE8E0; color: #D84315; }
+  .hud-chip.combo.pulse { animation: pulse .3s ease; }
+  @keyframes pulse { 50% { transform: scale(1.22); } }
+  .hud-spacer { flex: 1; }
+  .quit-btn {
+    width: 34px; height: 34px; flex: none;
+    border: none; border-radius: 10px;
+    background: #FFE9E5; color: #C0392B;
+    font-size: 15px; font-weight: 800; cursor: pointer;
+  }
+  .quit-btn:active { background: #FFD3CC; }
+
+  .timer-bar { flex: none; height: 8px; background: #F0D9C0; }
+  .timer-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #66BB6A, #9CCC65);
+    transition: width .06s linear;
+  }
+  .timer-fill.warn { background: linear-gradient(90deg, #FFC107, #FFA000); }
+  .timer-fill.danger { background: linear-gradient(90deg, #EF5350, #E53935); }
+
+  .scene {
+    flex: 1; min-height: 120px; position: relative;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,255,255,.55), transparent 60%),
+      linear-gradient(180deg, #FFEACB 0%, #FFDBAF 60%, #F3C388 100%);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .scene::before {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
+    background: linear-gradient(180deg, #E8B47C, #D69B5E);
+    box-shadow: inset 0 4px 12px rgba(120,60,10,.18);
+  }
+  .deco { position: absolute; font-size: 30px; opacity: .8; filter: drop-shadow(0 3px 4px rgba(120,60,10,.2)); }
+  .deco.d1 { left: 12px; bottom: 20px; }
+  .deco.d2 { right: 14px; bottom: 22px; font-size: 26px; }
+  .deco.d3 { right: 20px; top: 12px; font-size: 22px; opacity: .55; }
+
+  .customer-area { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; }
+  .customer {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    animation: popIn .38s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popIn { from { opacity: 0; transform: scale(.5) translateY(20px); } }
+  .bubble {
+    background: #fff; border-radius: 16px; padding: 6px 14px;
+    font-size: 30px; line-height: 1.2;
+    box-shadow: 0 5px 14px rgba(140,70,20,.18);
+    position: relative; animation: bobSmall 2s ease-in-out infinite;
+  }
+  @keyframes bobSmall { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .bubble::after {
+    content: ''; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
+    border: 7px solid transparent; border-top-color: #fff; border-bottom: 0;
+  }
+  .avatar { font-size: 60px; line-height: 1; filter: drop-shadow(0 6px 8px rgba(120,60,10,.22)); }
+  .avatar.happy { animation: hop .5s ease; }
+  @keyframes hop { 50% { transform: translateY(-14px) scale(1.1); } }
+  .avatar.angry { animation: shake .45s ease; }
+  @keyframes shake { 25% { transform: translateX(-8px) rotate(-6deg); } 75% { transform: translateX(8px) rotate(6deg); } }
+
+  .quiz {
+    flex: 1.5; min-height: 0; background: #fff;
+    border-top: 4px solid #FF9F4A;
+    padding: 14px 16px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+  }
+  .q-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    color: #C97B2E; background: #FFF3E2;
+    padding: 4px 10px; border-radius: 8px; align-self: flex-start;
+  }
+  .q-text {
+    font-size: clamp(15px, 2.4vw, 18px);
+    font-weight: 800; color: #3E2723; line-height: 1.55; word-break: break-word;
+  }
+  .opts { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 520px) { .opts { grid-template-columns: 1fr; } }
+
+  .opt {
+    display: flex; align-items: center; gap: 9px;
+    padding: 11px 13px;
+    border: 2px solid #F0DCC4; background: #FFFCF7;
+    border-radius: 13px; font-family: inherit;
+    font-size: 14px; font-weight: 600; color: #4E342E;
+    text-align: left; cursor: pointer; transition: .14s; line-height: 1.4;
+  }
+  .opt:active:not(:disabled) { transform: scale(.98); }
+  .opt:hover:not(:disabled) { border-color: #FF9F4A; background: #FFF6EC; }
+  .opt:disabled { cursor: default; }
+  .opt-key {
+    width: 23px; height: 23px; flex: none;
+    display: grid; place-items: center;
+    background: #FFE7CE; color: #B85C1F;
+    border-radius: 7px; font-weight: 900; font-size: 12px;
+  }
+  .opt-val { word-break: break-word; }
+  .opt.correct { border-color: #4CAF50; background: #E9F9EA; }
+  .opt.correct .opt-key { background: #4CAF50; color: #fff; }
+  .opt.wrong { border-color: #E53935; background: #FDECEA; }
+  .opt.wrong .opt-key { background: #E53935; color: #fff; }
+
+  .feedback {
+    position: absolute; left: 50%; top: 42%;
+    transform: translate(-50%, -50%) scale(.7);
+    background: rgba(255,255,255,.97);
+    padding: 16px 30px; border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 14px 40px rgba(0,0,0,.22);
+    opacity: 0; pointer-events: none;
+    transition: .22s cubic-bezier(.34,1.56,.64,1);
+    z-index: 30; border: 3px solid transparent;
+  }
+  .feedback.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .feedback.correct { border-color: #4CAF50; }
+  .feedback.wrong { border-color: #E53935; }
+  .fb-title { font-size: 22px; font-weight: 900; }
+  .feedback.correct .fb-title { color: #2E7D32; }
+  .feedback.wrong .fb-title { color: #C62828; }
+  .fb-sub { font-size: 13px; color: #8D6E63; margin-top: 5px; font-weight: 600; max-width: 240px; }
+
+  /* ================= 通用顶栏 ================= */
+  .topbar {
+    flex: none; display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; background: #fff; border-bottom: 2px solid #F5E3CE;
+  }
+  .back-btn {
+    border: none; background: #FFF1E0; color: #A9662B;
+    padding: 7px 13px; border-radius: 10px;
+    font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+  }
+  .back-btn:active { background: #FFE3C4; }
+  .topbar h2 { font-size: 16px; font-weight: 900; color: #5D4037; flex: 1; }
+  .topbar .count { font-size: 12px; font-weight: 700; color: #A9764A; }
+
+  /* ================= 题目编辑器 ================= */
+  .editor-body {
+    flex: 1; min-height: 0;
+    display: flex; gap: 14px; padding: 14px; overflow: hidden;
+  }
+  @media (max-width: 700px) {
+    .editor-body { flex-direction: column; overflow-y: auto; }
+  }
+
+  .form-card {
+    flex: none; width: 320px; background: #fff;
+    border-radius: 16px; padding: 14px;
+    box-shadow: 0 3px 14px rgba(160,100,40,.1);
+    display: flex; flex-direction: column; gap: 8px;
+    overflow-y: auto;
+  }
+  @media (max-width: 700px) { .form-card { width: 100%; flex: none; overflow: visible; } }
+
+  .form-card label {
+    font-size: 11px; font-weight: 800; color: #A9764A;
+    letter-spacing: .8px; margin-top: 2px;
+  }
+  .form-card textarea, .form-card input[type="text"] {
+    width: 100%; font-family: inherit; font-size: 14px;
+    padding: 9px 11px;
+    border: 2px solid #F0DCC4; border-radius: 10px;
+    background: #FFFCF8; color: #3E2723;
+    outline: none; resize: vertical; transition: border-color .15s;
+  }
+  .form-card textarea { min-height: 62px; }
+  .form-card textarea:focus, .form-card input:focus { border-color: #FF9F4A; }
+
+  .opt-row { display: flex; align-items: center; gap: 7px; }
+  .opt-row input[type="radio"] {
+    width: 17px; height: 17px; flex: none;
+    accent-color: #FF8C42; cursor: pointer;
+  }
+  .opt-row input[type="text"] { flex: 1; }
+  .del-opt {
+    flex: none; width: 26px; height: 26px;
+    border: none; border-radius: 8px;
+    background: #FFEBE7; color: #C0392B;
+    font-size: 12px; font-weight: 800; cursor: pointer;
+  }
+
+  .link-btn {
+    align-self: flex-start; border: none; background: none;
+    color: #C97B2E; font-family: inherit;
+    font-size: 12px; font-weight: 800;
+    cursor: pointer; padding: 2px 0; text-decoration: underline;
+  }
+
+  .form-actions { display: flex; gap: 8px; margin-top: 6px; }
+  .form-actions button {
+    flex: 1; padding: 11px;
+    border: none; border-radius: 11px;
+    font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+  }
+  #btnSaveQ {
+    background: linear-gradient(180deg, #FF9F4A, #F0761B);
+    color: #fff; box-shadow: 0 3px 0 #B8540F;
+  }
+  #btnSaveQ:active { transform: translateY(2px); box-shadow: 0 1px 0 #B8540F; }
+  #btnCancelEdit { background: #F2E5D6; color: #8B5A2B; }
+
+  .q-list {
+    flex: 1; min-width: 0; min-height: 0;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 8px;
+    padding-right: 4px;
+  }
+  @media (max-width: 700px) {
+    .q-list { flex: none; overflow: visible; max-height: 46vh; }
+  }
+
+  .q-list::-webkit-scrollbar, .form-card::-webkit-scrollbar,
+  .quiz::-webkit-scrollbar, .shop-body::-webkit-scrollbar { width: 6px; }
+  .q-list::-webkit-scrollbar-thumb, .form-card::-webkit-scrollbar-thumb,
+  .quiz::-webkit-scrollbar-thumb, .shop-body::-webkit-scrollbar-thumb { background: #E3CDB4; border-radius: 3px; }
+
+  .q-item {
+    background: #fff; border-radius: 13px; padding: 11px 13px;
+    display: flex; gap: 10px; align-items: flex-start;
+    box-shadow: 0 2px 8px rgba(160,100,40,.07);
+    border-left: 4px solid #FFC888;
+  }
+  .q-item-main { flex: 1; min-width: 0; }
+  .q-item-title {
+    font-size: 14px; font-weight: 700; color: #3E2723;
+    line-height: 1.5;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .q-item-ans {
+    font-size: 12px; color: #2E7D32; font-weight: 700;
+    margin-top: 4px;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .q-item-actions { display: flex; gap: 5px; flex: none; }
+  .q-item-actions button {
+    width: 28px; height: 28px;
+    border: none; border-radius: 8px;
+    background: #F5EADB; cursor: pointer; font-size: 13px;
+  }
+  .q-item-actions button:active { background: #EBD9C2; }
+  .empty-tip {
+    text-align: center; color: #B99B7A; font-size: 13px;
+    padding: 30px 10px; line-height: 1.8;
+  }
+
+  /* ================= 商店 ================= */
+  .shop-body {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .wallet-bar {
+    background: linear-gradient(135deg, #FFD9A8, #FFC078);
+    border-radius: 16px; padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 14px rgba(200,120,40,.22);
+  }
+  .wallet-bar .label { font-size: 12px; font-weight: 800; color: #8B5A2B; letter-spacing: 1px; }
+  .wallet-bar .amount { font-size: 26px; font-weight: 900; color: #6B3410; }
+
+  .shop-card {
+    background: #fff; border-radius: 16px; padding: 14px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 3px 12px rgba(160,100,40,.09);
+  }
+  .shop-icon {
+    font-size: 34px; flex: none;
+    width: 56px; height: 56px;
+    display: grid; place-items: center;
+    background: #FFF4E5; border-radius: 14px;
+  }
+  .shop-info { flex: 1; min-width: 0; }
+  .shop-name { font-size: 15px; font-weight: 900; color: #4E342E; }
+  .shop-desc { font-size: 12px; color: #A1887F; margin-top: 3px; line-height: 1.45; }
+  .level-dots { display: flex; gap: 4px; margin-top: 7px; }
+  .dot { width: 16px; height: 6px; border-radius: 3px; background: #EEE0D0; }
+  .dot.on { background: linear-gradient(90deg, #FFB74D, #FF9800); }
+
+  .buy-btn {
+    flex: none; padding: 10px 15px;
+    border: none; border-radius: 12px;
+    font-family: inherit; font-size: 13px; font-weight: 900;
+    cursor: pointer;
+    background: linear-gradient(180deg, #66BB6A, #43A047);
+    color: #fff; box-shadow: 0 3px 0 #2E7D32; white-space: nowrap;
+  }
+  .buy-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #2E7D32; }
+  .buy-btn:disabled {
+    background: #E0D6CC; color: #A99A8C;
+    box-shadow: 0 3px 0 #CFC3B7; cursor: not-allowed;
+  }
+
+  .toast {
+    position: absolute; left: 50%; bottom: 26px;
+    transform: translate(-50%, 20px);
+    background: rgba(62,39,35,.94); color: #fff;
+    padding: 11px 22px; border-radius: 30px;
+    font-size: 13px; font-weight: 700;
+    opacity: 0; pointer-events: none;
+    transition: .25s; z-index: 100; white-space: nowrap;
+    max-width: 90%; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ========== 主菜单 ========== -->
+  <div class="screen active" id="menuScreen">
+    <div class="menu-inner">
+      <div class="logo">🍽️</div>
+      <h1>小小餐厅</h1>
+      <p class="subtitle">答对题目，为客人上菜赚金币！</p>
+      <div class="menu-stats">
+        <div class="stat-chip"><span id="menuCoins">0</span><small>金币</small></div>
+        <div class="stat-chip"><span id="menuServed">0</span><small>累计服务</small></div>
+        <div class="stat-chip"><span id="menuBest">0</span><small>最高连击</small></div>
+      </div>
+      <button class="big-btn primary" id="btnStart">开 始 营 业</button>
+      <button class="big-btn" id="btnShop">🛒 升级店铺</button>
+      <button class="big-btn" id="btnEditor">📝 管理题库</button>
+      <button class="big-btn ghost" id="btnReset">重置全部进度</button>
+    </div>
+  </div>
+
+  <!-- ========== 游戏界面 ========== -->
+  <div class="screen" id="gameScreen">
+    <div class="hud">
+      <div class="hud-chip">💰 <span id="hudCoins">0</span></div>
+      <div class="hud-chip combo" id="comboChip">🔥 <span id="hudCombo">0</span></div>
+      <div class="hud-chip">🍽️ <span id="hudServed">0</span></div>
+      <div class="hud-spacer"></div>
+      <button class="quit-btn" id="btnQuit">✕</button>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+    <div class="scene">
+      <div class="deco d1">🪴</div>
+      <div class="deco d2">🧾</div>
+      <div class="deco d3">💡</div>
+      <div class="customer-area" id="customerArea"></div>
+    </div>
+    <div class="quiz">
+      <div class="q-tag">🍳 答对题目才能出餐哦</div>
+      <div class="q-text" id="qText">准备中…</div>
+      <div class="opts" id="opts"></div>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <!-- ========== 题库编辑 ========== -->
+  <div class="screen" id="editorScreen">
+    <div class="topbar">
+      <button class="back-btn" id="btnBackFromEditor">← 返回</button>
+      <h2>📝 我的题库</h2>
+      <span class="count" id="qCount">0 题</span>
+    </div>
+    <div class="editor-body">
+      <div class="form-card">
+        <label>题目内容</label>
+        <textarea id="inQuestion" placeholder="例如：太阳从哪个方向升起？"></textarea>
+
+        <label>选项（填好后勾选正确答案）</label>
+        <div id="optInputs" style="display:flex;flex-direction:column;gap:6px;"></div>
+        <button class="link-btn" id="btnAddOpt">+ 增加一个选项</button>
+
+        <label>解析 / 提示（选填）</label>
+        <input type="text" id="inExplain" placeholder="答完后展示给学生看">
+
+        <div class="form-actions">
+          <button id="btnSaveQ">保存题目</button>
+          <button id="btnCancelEdit">清空表单</button>
+        </div>
+      </div>
+      <div class="q-list" id="qList"></div>
+    </div>
+  </div>
+
+  <!-- ========== 商店 ========== -->
+  <div class="screen" id="shopScreen">
+    <div class="topbar">
+      <button class="back-btn" id="btnBackFromShop">← 返回</button>
+      <h2>🛒 升级店铺</h2>
+    </div>
+    <div class="shop-body">
+      <div class="wallet-bar">
+        <div>
+          <div class="label">我的金币</div>
+          <div class="amount">💰 <span id="shopCoins">0</span></div>
+        </div>
+        <div style="font-size:34px;">🏪</div>
+      </div>
+      <div id="shopList" style="display:flex;flex-direction:column;gap:12px;"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* =========================================================
+   基础工具
+   ========================================================= */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const rand = n => Math.floor(Math.random() * n);
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = rand(i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* =========================================================
+   常量数据
+   ========================================================= */
+const STORAGE_KEY = 'miniRestaurant_v1';
+
+const DEFAULT_QUESTIONS = [
+  // ===== 数学 =====
+  { q: '7 × 8 = ?', options: ['56', '54', '64', '48'], answer: 0, explain: '7 × 8 = 56' },
+  { q: '100 - 37 = ?', options: ['63', '67', '73', '57'], answer: 0, explain: '100 - 37 = 63' },
+  { q: '12 ÷ 4 = ?', options: ['3', '4', '2', '6'], answer: 0, explain: '12 ÷ 4 = 3' },
+  { q: '9 的平方是多少？', options: ['81', '18', '72', '99'], answer: 0, explain: '9 × 9 = 81' },
+  { q: '最大的两位数是多少？', options: ['99', '90', '100', '98'], answer: 0, explain: '最大的两位数是 99。' },
+  { q: '三角形内角和是多少度？', options: ['180°', '90°', '360°', '270°'], answer: 0, explain: '任意三角形内角和都是 180°。' },
+  { q: '0.5 等于几分之几？', options: ['1/2', '1/5', '1/4', '2/5'], answer: 0, explain: '0.5 = 1/2' },
+  { q: '1 小时等于多少分钟？', options: ['60', '30', '100', '120'], answer: 0, explain: '1 小时 = 60 分钟。' },
+
+  // ===== 语文 =====
+  { q: '“白日依山尽”的下一句是？', options: ['黄河入海流', '欲穷千里目', '更上一层楼', '春风吹又生'], answer: 0, explain: '出自王之涣《登鹳雀楼》。' },
+  { q: '“锄禾日当午”的下一句是？', options: ['汗滴禾下土', '粒粒皆辛苦', '谁知盘中餐', '春种一粒粟'], answer: 0, explain: '出自李绅《悯农》。' },
+  { q: '《静夜思》的作者是谁？', options: ['李白', '杜甫', '白居易', '王维'], answer: 0, explain: '《静夜思》是李白的名作。' },
+  { q: '成语“画蛇添足”比喻什么？', options: ['做了多余的事', '做事很快', '画得很像', '缺少东西'], answer: 0, explain: '比喻多此一举，反而坏事。' },
+  { q: '“亡羊补牢”中“亡”的意思是？', options: ['丢失', '死亡', '逃跑', '忘记'], answer: 0, explain: '“亡”在这里指羊丢失了。' },
+  { q: '“三顾茅庐”说的是谁三次去请诸葛亮？', options: ['刘备', '曹操', '孙权', '关羽'], answer: 0, explain: '刘备三顾茅庐请诸葛亮出山。' },
+  { q: '“碧玉妆成一树高”的下一句是？', options: ['万条垂下绿丝绦', '二月春风似剪刀', '不知细叶谁裁出', '春风又绿江南岸'], answer: 0, explain: '出自贺知章《咏柳》。' },
+  { q: '“一寸光阴一寸金”的下一句是？', options: ['寸金难买寸光阴', '光阴似箭日月如梭', '莫等闲白了少年头', '少壮不努力'], answer: 0, explain: '劝人珍惜时间。' },
+
+  // ===== 英语 =====
+  { q: '英文单词 “banana” 是什么意思？', options: ['香蕉', '苹果', '橘子', '葡萄'], answer: 0, explain: 'banana = 香蕉 🍌' },
+  { q: '“Good morning” 是什么意思？', options: ['早上好', '晚上好', '再见', '谢谢'], answer: 0, explain: 'Good morning = 早上好。' },
+  { q: '“cat” 的复数形式是？', options: ['cats', 'cates', 'catz', 'cat'], answer: 0, explain: '一般名词直接加 s。' },
+  { q: '“I ___ a student.” 横线处应填？', options: ['am', 'is', 'are', 'be'], answer: 0, explain: 'I 后面用 am。' },
+  { q: '“星期一”的英文是？', options: ['Monday', 'Sunday', 'Tuesday', 'Friday'], answer: 0, explain: 'Monday = 星期一。' },
+  { q: '别人说 “Thank you”，最合适的回答是？', options: ["You're welcome", 'Sorry', 'Goodbye', 'Yes, I do'], answer: 0, explain: "You're welcome = 不客气。" },
+
+  // ===== 科学 =====
+  { q: '地球绕着什么转？', options: ['太阳', '月亮', '火星', '北极星'], answer: 0, explain: '地球绕太阳公转。' },
+  { q: '植物进行光合作用主要需要什么？', options: ['阳光', '月光', '风', '土壤里的石头'], answer: 0, explain: '光合作用需要阳光、水和二氧化碳。' },
+  { q: '水的化学式是什么？', options: ['H₂O', 'CO₂', 'O₂', 'H₂'], answer: 0, explain: '一个水分子由 2 个氢原子和 1 个氧原子组成。' },
+  { q: '彩虹通常有几种颜色？', options: ['7 种', '5 种', '3 种', '9 种'], answer: 0, explain: '赤橙黄绿青蓝紫，共 7 种。' },
+  { q: '人体最大的器官是什么？', options: ['皮肤', '心脏', '大脑', '肝脏'], answer: 0, explain: '皮肤是人体面积最大的器官。' },
+  { q: '被称为“森林医生”的鸟是？', options: ['啄木鸟', '麻雀', '乌鸦', '喜鹊'], answer: 0, explain: '啄木鸟会捉树干里的虫子。' },
+  { q: '月亮本身会发光吗？', options: ['不会，它反射太阳光', '会，它自己发光', '只有满月会发光', '只有在白天会发光'], answer: 0, explain: '月亮反射太阳的光，所以看起来是亮的。' },
+  { q: '下面哪种动物是哺乳动物？', options: ['鲸鱼', '鲨鱼', '金鱼', '章鱼'], answer: 0, explain: '鲸鱼用肺呼吸，是哺乳动物。' },
+
+  // ===== 常识 =====
+  { q: '中国的首都是哪座城市？', options: ['北京', '上海', '广州', '南京'], answer: 0, explain: '中国首都是北京。' },
+  { q: '长江和黄河，哪条更长？', options: ['长江', '黄河', '一样长', '不确定'], answer: 0, explain: '长江是中国第一长河。' },
+  { q: '世界上最大的海洋是？', options: ['太平洋', '大西洋', '印度洋', '北冰洋'], answer: 0, explain: '太平洋面积最大。' },
+  { q: '中国的国宝动物是？', options: ['大熊猫', '金丝猴', '东北虎', '丹顶鹤'], answer: 0, explain: '大熊猫是中国的国宝。' },
+  { q: '一天有多少小时？', options: ['24', '12', '30', '48'], answer: 0, explain: '一天有 24 小时。' },
+  { q: '一年有多少个月？', options: ['12', '10', '24', '7'], answer: 0, explain: '一年有 12 个月。' },
+  { q: '农历八月十五是什么节日？', options: ['中秋节', '端午节', '元宵节', '春节'], answer: 0, explain: '中秋赏月、吃月饼。' },
+  { q: '红绿灯中，哪种颜色表示可以通行？', options: ['绿色', '红色', '黄色', '蓝色'], answer: 0, explain: '绿灯行，红灯停。' }
+];
+
+const AVATARS = ['🧑‍🎓','👦','👧','👨','👩','🧓','👵','🧔','👱‍♀️','🧑‍🚀','👩‍🍳','👨‍🎨','🐱','🐶','🐼','🦊','🐻','🐨','🐯'];
+const FOODS   = ['🍜','🍔','🍕','🍣','🍰','🥗','🍱','🌮','🍝','🍤','🥞','🍦','🍩','🍗'];
+
+const UPGRADES = [
+  { key: 'food',    name: '秘制菜谱', icon: '🍳', desc: '每单基础收入 +6 金币',    baseCost: 60,  max: 5 },
+  { key: 'comfort', name: '舒适装修', icon: '🪑', desc: '每道题作答时间 +3 秒',    baseCost: 80,  max: 5 },
+  { key: 'tip',     name: '小费罐',   icon: '🫙', desc: '连击奖励加成更高',        baseCost: 100, max: 5 }
+];
+
+/* =========================================================
+   全局状态
+   ========================================================= */
+const G = {
+  coins: 0,
+  upgrades: { food: 0, comfort: 0, tip: 0 },
+  questions: [],
+  stats: { served: 0, bestCombo: 0 },
+  active: false,
+  locked: false,
+  combo: 0,
+  servedThisSession: 0,
+  currentQ: null,
+  timerId: null,
+  timeLeft: 0,
+  timeTotal: 0,
+  lastQ: null
+};
+
+/* =========================================================
+   存档
+   ========================================================= */
+function saveGame() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      coins: G.coins,
+      upgrades: G.upgrades,
+      questions: G.questions,
+      stats: G.stats
+    }));
+  } catch (e) {}
+}
+
+function loadGame() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
+
+  if (data && typeof data === 'object') {
+    G.coins = Number(data.coins) || 0;
+    G.upgrades = Object.assign({ food: 0, comfort: 0, tip: 0 }, data.upgrades || {});
+    G.questions = (Array.isArray(data.questions) && data.questions.length)
+      ? data.questions : DEFAULT_QUESTIONS.map(q => ({ ...q, options: [...q.options] }));
+    G.stats = Object.assign({ served: 0, bestCombo: 0 }, data.stats || {});
+  } else {
+    G.coins = 0;
+    G.upgrades = { food: 0, comfort: 0, tip: 0 };
+    G.questions = DEFAULT_QUESTIONS.map(q => ({ ...q, options: [...q.options] }));
+    G.stats = { served: 0, bestCombo: 0 };
+    saveGame();
+  }
+}
+
+/* =========================================================
+   界面切换 & 提示
+   ========================================================= */
+function show(sel) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  $(sel).classList.add('active');
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* =========================================================
+   菜单 / HUD 刷新
+   ========================================================= */
+function refreshMenu() {
+  $('#menuCoins').textContent = G.coins;
+  $('#menuServed').textContent = G.stats.served;
+  $('#menuBest').textContent = G.stats.bestCombo;
+}
+
+function updateHUD() {
+  $('#hudCoins').textContent = G.coins;
+  $('#hudCombo').textContent = G.combo;
+  $('#hudServed').textContent = G.servedThisSession;
+  $('#shopCoins').textContent = G.coins;
+}
+
+/* =========================================================
+   出题
+   ========================================================= */
+function shuffledQuestion(raw) {
+  const pairs = raw.options
+    .map((o, i) => ({ text: String(o ?? '').trim(), correct: i === raw.answer }))
+    .filter(p => p.text !== '');
+
+  if (pairs.length < 2) return null;
+  shuffle(pairs);
+
+  return {
+    q: raw.q,
+    options: pairs.map(p => p.text),
+    answer: pairs.findIndex(p => p.correct),
+    explain: raw.explain || ''
+  };
+}
+
+function getRandomQuestion() {
+  const pool = G.questions.filter(q =>
+    Array.isArray(q.options) &&
+    q.options.filter(o => String(o ?? '').trim() !== '').length >= 2
+  );
+  if (!pool.length) return null;
+
+  let tries = 0, q = null;
+  do {
+    q = pick(pool);
+    tries++;
+  } while (pool.length > 1 && G.lastQ && q.q === G.lastQ && tries < 12);
+
+  G.lastQ = q.q;
+  return shuffledQuestion(q);
+}
+
+/* =========================================================
+   计时器
+   ========================================================= */
+function startTimer(seconds) {
+  stopTimer();
+  G.timeTotal = seconds;
+  G.timeLeft = seconds;
+  renderTimer();
+
+  let last = performance.now();
+  G.timerId = setInterval(() => {
+    const now = performance.now();
+    G.timeLeft -= (now - last) / 1000;
+    last = now;
+    if (G.timeLeft <= 0) {
+      G.timeLeft = 0;
+      renderTimer();
+      stopTimer();
+      onTimeUp();
+    } else {
+      renderTimer();
+    }
+  }, 60);
+}
+
+function stopTimer() {
+  if (G.timerId) { clearInterval(G.timerId); G.timerId = null; }
+}
+
+function renderTimer() {
+  const pct = G.timeTotal > 0 ? Math.max(0, G.timeLeft / G.timeTotal) : 0;
+  const fill = $('#timerFill');
+  fill.style.width = (pct * 100) + '%';
+  fill.classList.toggle('warn', pct <= 0.5 && pct > 0.22);
+  fill.classList.toggle('danger', pct <= 0.22);
+}
+
+/* =========================================================
+   游戏流程
+   ========================================================= */
+function startGame() {
+  const valid = G.questions.filter(q =>
+    Array.isArray(q.options) &&
+    q.options.filter(o => String(o ?? '').trim() !== '').length >= 2
+  );
+  if (valid.length === 0) {
+    toast('题库里还没有可用的题目，先去添加吧！');
+    openEditor();
+    return;
+  }
+
+  G.active = true;
+  G.locked = false;
+  G.combo = 0;
+  G.servedThisSession = 0;
+  G.lastQ = null;
+
+  updateHUD();
+  show('#gameScreen');
+  nextRound();
+}
+
+function quitGame() {
+  G.active = false;
+  G.locked = false;
+  stopTimer();
+  saveGame();
+  refreshMenu();
+  show('#menuScreen');
+}
+
+function nextRound() {
+  if (!G.active) return;
+
+  const q = getRandomQuestion();
+  if (!q) {
+    toast('题目不够啦，去题库再加几道吧！');
+    quitGame();
+    return;
+  }
+  G.currentQ = q;
+
+  const avatar = pick(AVATARS);
+  const food = pick(FOODS);
+  $('#customerArea').innerHTML = `
+    <div class="customer">
+      <div class="bubble">${food}</div>
+      <div class="avatar" id="custAvatar">${avatar}</div>
+    </div>`;
+
+  $('#qText').textContent = q.q;
+  const optsWrap = $('#opts');
+  optsWrap.innerHTML = '';
+  q.options.forEach((text, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.type = 'button';
+    btn.innerHTML = `<span class="opt-key">${'ABCD'[i]}</span><span class="opt-val">${esc(text)}</span>`;
+    btn.addEventListener('click', () => onAnswer(i));
+    optsWrap.appendChild(btn);
+  });
+
+  G.locked = false;
+  startTimer(15 + G.upgrades.comfort * 3);
+}
+
+function markOptions(chosen) {
+  const q = G.currentQ;
+  $$('#opts .opt').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+    if (i === chosen && chosen !== q.answer) btn.classList.add('wrong');
+  });
+}
+
+function onAnswer(idx) {
+  if (!G.active || G.locked) return;
+  G.locked = true;
+  stopTimer();
+
+  const q = G.currentQ;
+  const correct = idx === q.answer;
+  markOptions(idx);
+
+  const avatarEl = $('#custAvatar');
+
+  if (correct) {
+    G.combo++;
+    if (G.combo > G.stats.bestCombo) G.stats.bestCombo = G.combo;
+    G.servedThisSession++;
+    G.stats.served++;
+
+    const base = 10 + G.upgrades.food * 6;
+    const bonusPerCombo = 0.08 + G.upgrades.tip * 0.02;
+    const mult = 1 + Math.min(G.combo - 1, 9) * bonusPerCombo;
+    const earn = Math.round(base * mult);
+
+    G.coins += earn;
+    updateHUD();
+    saveGame();
+
+    const chip = $('#comboChip');
+    chip.classList.remove('pulse');
+    void chip.offsetWidth;
+    chip.classList.add('pulse');
+
+    if (avatarEl) { avatarEl.textContent = '😄'; avatarEl.classList.add('happy'); }
+
+    showFeedback('correct',
+      `出餐成功！+${earn} 💰`,
+      G.combo > 1 ? `🔥 ${G.combo} 连击 · 收入 ×${mult.toFixed(2)}` : '客人心满意足地吃了起来');
+
+  } else {
+    G.combo = 0;
+    updateHUD();
+
+    if (avatarEl) { avatarEl.textContent = '😠'; avatarEl.classList.add('angry'); }
+
+    showFeedback('wrong',
+      '答错啦…客人走掉了',
+      `正确答案：${q.options[q.answer]}${q.explain ? ' · ' + q.explain : ''}`);
+  }
+
+  setTimeout(() => {
+    if (!G.active) return;
+    G.locked = false;
+    nextRound();
+  }, 1900);
+}
+
+function onTimeUp() {
+  if (!G.active || G.locked) return;
+  G.locked = true;
+
+  G.combo = 0;
+  updateHUD();
+  markOptions(-1);
+
+  const q = G.currentQ;
+  const avatarEl = $('#custAvatar');
+  if (avatarEl) { avatarEl.textContent = '😤'; avatarEl.classList.add('angry'); }
+
+  showFeedback('wrong',
+    '客人等不及，走了…',
+    `正确答案：${q.options[q.answer]}${q.explain ? ' · ' + q.explain : ''}`);
+
+  setTimeout(() => {
+    if (!G.active) return;
+    G.locked = false;
+    nextRound();
+  }, 1900);
+}
+
+let fbTimer = null;
+function showFeedback(type, title, sub) {
+  const fb = $('#feedback');
+  fb.className = 'feedback show ' + type;
+  fb.innerHTML = `<div class="fb-title">${esc(title)}</div>` +
+                 (sub ? `<div class="fb-sub">${esc(sub)}</div>` : '');
+  clearTimeout(fbTimer);
+  fbTimer = setTimeout(() => fb.classList.remove('show'), 1700);
+}
+
+/* 键盘 A/B/C/D 或 1/2/3/4 作答 */
+document.addEventListener('keydown', e => {
+  if (!G.active || G.locked || !G.currentQ) return;
+  const k = e.key.toUpperCase();
+  let idx = 'ABCD'.indexOf(k);
+  if (idx < 0) idx = '1234'.indexOf(k);
+  if (idx >= 0 && idx < G.currentQ.options.length) onAnswer(idx);
+});
+
+/* =========================================================
+   商店
+   ========================================================= */
+function upgradeCost(up, level) {
+  return Math.round(up.baseCost * Math.pow(1.7, level));
+}
+
+function renderShop() {
+  $('#shopCoins').textContent = G.coins;
+  const wrap = $('#shopList');
+  wrap.innerHTML = '';
+
+  UPGRADES.forEach(up => {
+    const lvl = G.upgrades[up.key] || 0;
+    const maxed = lvl >= up.max;
+    const cost = upgradeCost(up, lvl);
+    const affordable = !maxed && G.coins >= cost;
+
+    const card = document.createElement('div');
+    card.className = 'shop-card';
+    card.innerHTML = `
+      <div class="shop-icon">${up.icon}</div>
+      <div class="shop-info">
+        <div class="shop-name">${up.name} <span style="color:#C97B2E;font-size:12px;">Lv.${lvl}/${up.max}</span></div>
+        <div class="shop-desc">${up.desc}</div>
+        <div class="level-dots">
+          ${Array.from({ length: up.max }, (_, i) =>
+            `<div class="dot ${i < lvl ? 'on' : ''}"></div>`).join('')}
+        </div>
+      </div>
+      <button class="buy-btn" ${maxed || !affordable ? 'disabled' : ''}>
+        ${maxed ? '已满级' : '💰 ' + cost}
+      </button>`;
+
+    if (!maxed && affordable) {
+      card.querySelector('.buy-btn').addEventListener('click', () => buyUpgrade(up));
+    }
+    wrap.appendChild(card);
+  });
+}
+
+function buyUpgrade(up) {
+  const lvl = G.upgrades[up.key] || 0;
+  if (lvl >= up.max) return;
+  const cost = upgradeCost(up, lvl);
+  if (G.coins < cost) { toast('金币不够，再多服务几位客人吧！'); return; }
+
+  G.coins -= cost;
+  G.upgrades[up.key] = lvl + 1;
+  saveGame();
+  renderShop();
+  updateHUD();
+  toast(`升级成功！${up.name} 已达到 Lv.${lvl + 1}`);
+}
+
+/* =========================================================
+   题库编辑器
+   ========================================================= */
+let editingIndex = -1;
+
+function addOptRow(value = '', checked = false) {
+  const wrap = $('#optInputs');
+  if (wrap.children.length >= 6) { toast('最多支持 6 个选项'); return; }
+
+  const row = document.createElement('div');
+  row.className = 'opt-row';
+
+  const radio = document.createElement('input');
+  radio.type = 'radio';
+  radio.name = 'correctOpt';
+  radio.checked = checked;
+
+  const text = document.createElement('input');
+  text.type = 'text';
+  text.className = 'opt-text';
+  text.placeholder = '选项 ' + (wrap.children.length + 1);
+  text.value = value;
+
+  const del = document.createElement('button');
+  del.className = 'del-opt';
+  del.type = 'button';
+  del.textContent = '✕';
+  del.addEventListener('click', () => {
+    if (wrap.children.length <= 2) { toast('至少需要 2 个选项'); return; }
+    const wasChecked = radio.checked;
+    row.remove();
+    renumberOpts();
+    if (wasChecked) {
+      const first = wrap.querySelector('input[type="radio"]');
+      if (first) first.checked = true;
+    }
+  });
+
+  row.appendChild(radio);
+  row.appendChild(text);
+  row.appendChild(del);
+  wrap.appendChild(row);
+  renumberOpts();
+}
+
+function renumberOpts() {
+  $$('#optInputs .opt-row').forEach((row, i) => {
+    const inp = row.querySelector('.opt-text');
+    if (inp) inp.placeholder = '选项 ' + (i + 1);
+  });
+}
+
+function resetForm() {
+  editingIndex = -1;
+  $('#inQuestion').value = '';
+  $('#inExplain').value = '';
+  $('#optInputs').innerHTML = '';
+  addOptRow('', true);
+  addOptRow('');
+  addOptRow('');
+  addOptRow('');
+  $('#btnSaveQ').textContent = '保存题目';
+}
+
+function saveQuestion() {
+  const qText = $('#inQuestion').value.trim();
+  const explain = $('#inExplain').value.trim();
+  const rows = $$('#optInputs .opt-row');
+
+  if (!qText) { toast('请先填写题目内容'); return; }
+
+  const entries = rows.map(row => ({
+    text: row.querySelector('.opt-text').value.trim(),
+    correct: row.querySelector('input[type="radio"]').checked
+  }));
+
+  const filled = entries.filter(e => e.text !== '');
+  if (filled.length < 2) { toast('至少填写 2 个有效选项'); return; }
+  if (!filled.some(e => e.correct)) { toast('请勾选一个正确答案'); return; }
+
+  const answerIdx = filled.findIndex(e => e.correct);
+  const questionObj = {
+    q: qText,
+    options: filled.map(e => e.text),
+    answer: answerIdx,
+    explain
+  };
+
+  if (editingIndex >= 0 && editingIndex < G.questions.length) {
+    G.questions[editingIndex] = questionObj;
+    toast('题目已更新');
+  } else {
+    G.questions.push(questionObj);
+    toast('新题目已添加');
+  }
+
+  saveGame();
+  resetForm();
+  renderQuestionList();
+}
+
+function renderQuestionList() {
+  $('#qCount').textContent = G.questions.length + ' 题';
+  const list = $('#qList');
+
+  if (!G.questions.length) {
+    list.innerHTML = '<div class="empty-tip">题库还是空的 🥲<br>在左边写下第一道题目吧！</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  G.questions.forEach((q, i) => {
+    const item = document.createElement('div');
+    item.className = 'q-item';
+
+    const ansText = (q.options && q.options[q.answer] !== undefined)
+      ? String(q.options[q.answer]) : '?';
+
+    item.innerHTML = `
+      <div class="q-item-main">
+        <div class="q-item-title">${i + 1}. ${esc(q.q)}</div>
+        <div class="q-item-ans">✔ ${esc(ansText)}</div>
+      </div>
+      <div class="q-item-actions">
+        <button title="编辑">✏️</button>
+        <button title="删除">🗑️</button>
+      </div>`;
+
+    const [editBtn, delBtn] = item.querySelectorAll('.q-item-actions button');
+
+    editBtn.addEventListener('click', () => {
+      editingIndex = i;
+      $('#inQuestion').value = q.q;
+      $('#inExplain').value = q.explain || '';
+      $('#optInputs').innerHTML = '';
+      q.options.forEach((opt, oi) => addOptRow(opt, oi === q.answer));
+      $('#btnSaveQ').textContent = '保存修改';
+      $('#inQuestion').focus();
+    });
+
+    delBtn.addEventListener('click', () => {
+      if (!confirm('确定删除这道题目吗？')) return;
+      G.questions.splice(i, 1);
+      saveGame();
+      if (editingIndex === i) resetForm();
+      else if (editingIndex > i) editingIndex--;
+      renderQuestionList();
+    });
+
+    list.appendChild(item);
+  });
+}
+
+function openEditor() {
+  resetForm();
+  renderQuestionList();
+  show('#editorScreen');
+}
+
+/* =========================================================
+   事件绑定
+   ========================================================= */
+$('#btnStart').addEventListener('click', startGame);
+$('#btnShop').addEventListener('click', () => { renderShop(); show('#shopScreen'); });
+$('#btnEditor').addEventListener('click', openEditor);
+$('#btnQuit').addEventListener('click', quitGame);
+
+$('#btnBackFromShop').addEventListener('click', () => { refreshMenu(); show('#menuScreen'); });
+$('#btnBackFromEditor').addEventListener('click', () => { refreshMenu(); show('#menuScreen'); });
+
+$('#btnSaveQ').addEventListener('click', saveQuestion);
+$('#btnCancelEdit').addEventListener('click', resetForm);
+$('#btnAddOpt').addEventListener('click', () => addOptRow(''));
+
+$('#btnReset').addEventListener('click', () => {
+  if (!confirm('确定要重置吗？金币、升级和题库都会被清空（题库会恢复为 40 道示例题）')) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  G.coins = 0;
+  G.upgrades = { food: 0, comfort: 0, tip: 0 };
+  G.questions = DEFAULT_QUESTIONS.map(q => ({ ...q, options: [...q.options] }));
+  G.stats = { served: 0, bestCombo: 0 };
+  saveGame();
+  refreshMenu();
+  toast('进度已重置');
+});
+
+/* =========================================================
+   启动
+   ========================================================= */
+loadGame();
+refreshMenu();
+updateHUD();
+</script>
+</body>
+</html>
